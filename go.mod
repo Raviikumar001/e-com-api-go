@@ -1,4 +1,4 @@
-module rbac-project
+module github.com/Raviikumar001/e-com-api-go
 
 go 1.23.4
 
