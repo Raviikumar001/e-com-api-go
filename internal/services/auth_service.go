@@ -4,18 +4,18 @@ package services
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/Raviikumar001/e-com-api-go/internal/database"
 	"github.com/Raviikumar001/e-com-api-go/internal/repositories"
-	"github.com/Raviikumar001/e-com-api-go/internal/services/jwt_service"
 )
 
 type AuthService struct {
 	userRepo   repositories.UserRepository
-	jwtService jwt_service.JWTService
+	jwtService *JWTService
 }
 
-func NewAuthService(userRepo repositories.UserRepository, jwtService jwt_service.JWTService) *AuthService {
+func NewAuthService(userRepo repositories.UserRepository, jwtService *JWTService) *AuthService {
 	return &AuthService{userRepo: userRepo, jwtService: jwtService}
 }
 
@@ -35,6 +35,7 @@ func (s *AuthService) Authenticate(username string, password string) (string, er
 	return token, nil
 }
 
-func (s *AuthService) ValidateToken(tokenString string) (jwt_service.JWTClaims, error) {
+func (s *AuthService) ValidateToken(r *http.Request) (*JWTClaims, error) {
+	tokenString := r.Header.Get("Authorization")
 	return s.jwtService.ValidateToken(tokenString)
 }

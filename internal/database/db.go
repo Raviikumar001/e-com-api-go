@@ -44,9 +44,9 @@ func (db *DB) Migrate() error {
 
 type User struct {
 	gorm.Model
-	Name     string
-	Email    string
-	Password string
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Role     string `json:"role"`
 }
 
 type Role struct {
