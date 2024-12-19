@@ -42,10 +42,10 @@ package services
 
 import (
 	"errors"
-	"net/http"
 
 	"github.com/Raviikumar001/e-com-api-go/internal/database"
 	"github.com/Raviikumar001/e-com-api-go/internal/repositories"
+	"github.com/gofiber/fiber/v2"
 )
 
 type UserService struct {
@@ -57,7 +57,7 @@ func NewUserService(userRepo repositories.UserRepository, authService *AuthServi
 	return &UserService{userRepo: userRepo, authService: authService}
 }
 
-func (s *UserService) FindAll(r *http.Request) ([]database.User, error) {
+func (s *UserService) FindAll(r *fiber.Ctx) ([]database.User, error) {
 	claims, err := s.authService.ValidateToken(r)
 	if err != nil {
 		return nil, err
@@ -68,7 +68,11 @@ func (s *UserService) FindAll(r *http.Request) ([]database.User, error) {
 	return s.userRepo.FindAll()
 }
 
-func (s *UserService) FindByID(r *http.Request, id uint) (database.User, error) {
+func (s *UserService) FindByUsername(c *fiber.Ctx, username string) (database.User, error) {
+	return s.userRepo.FindByUsername(username)
+}
+
+func (s *UserService) FindByID(r *fiber.Ctx, id uint) (database.User, error) {
 	claims, err := s.authService.ValidateToken(r)
 	if err != nil {
 		return database.User{}, err
@@ -79,7 +83,7 @@ func (s *UserService) FindByID(r *http.Request, id uint) (database.User, error) 
 	return s.userRepo.FindByID(id)
 }
 
-func (s *UserService) Create(r *http.Request, user database.User) error {
+func (s *UserService) Create(r *fiber.Ctx, user database.User) error {
 	claims, err := s.authService.ValidateToken(r)
 	if err != nil {
 		return err
@@ -90,7 +94,7 @@ func (s *UserService) Create(r *http.Request, user database.User) error {
 	return s.userRepo.Create(user)
 }
 
-func (s *UserService) Update(r *http.Request, user database.User) error {
+func (s *UserService) Update(r *fiber.Ctx, user database.User) error {
 	claims, err := s.authService.ValidateToken(r)
 	if err != nil {
 		return err
@@ -101,7 +105,7 @@ func (s *UserService) Update(r *http.Request, user database.User) error {
 	return s.userRepo.Update(user)
 }
 
-func (s *UserService) Delete(r *http.Request, id uint) error {
+func (s *UserService) Delete(r *fiber.Ctx, id uint) error {
 	claims, err := s.authService.ValidateToken(r)
 	if err != nil {
 		return err
