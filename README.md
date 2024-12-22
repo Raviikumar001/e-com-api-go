@@ -3,9 +3,7 @@
 ## Table of Contents
 1. [Authentication](#authentication)
 2. [Roles & Permissions](#roles--permissions)
-3. [Products API](#products-api)
-4. [Error Codes](#error-codes)
-5. [Pagination](#pagination)
+
 
 ## Base URL
 
