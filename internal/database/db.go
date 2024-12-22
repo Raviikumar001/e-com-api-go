@@ -1,87 +1,115 @@
 // internal/database/db.go
-
 package database
 
 import (
-	"fmt"
 	"log"
 	"os"
 
-	"golang.org/x/crypto/bcrypt"
+	"github.com/Raviikumar001/e-com-api-go/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
-type DB struct {
-	*gorm.DB
+var DB *gorm.DB
+
+func InitDB() {
+    dsn := os.Getenv("DATABASE_URL")
+
+    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    if err != nil {
+        log.Fatal("Failed to connect to database:", err)
+    }
+
+    DB = db
+
+    // Auto Migrate schemas
+    err = db.AutoMigrate(
+        &models.User{},
+        &models.Role{},
+        &models.Permission{},
+        &models.Product{},
+        &models.Storefront{},
+    )
+    if err != nil {
+        log.Fatal("Failed to migrate database:", err)
+    }
+
+    // Initialize RBAC data
+    initializeRBAC(db)
 }
 
-func NewDB() (*DB, error) {
-	dsn := os.Getenv("DATABASE_URL")
-	if dsn == "" {
-		return nil, fmt.Errorf("DATABASE_URL environment variable is not set")
-	}
+// Initialize default roles and permissions
+func initializeRBAC(db *gorm.DB) {
+    // Create default roles
+    roles := []models.Role{
+        {Name: models.AdminRole},
+        {Name: models.WholesalerRole},
+        {Name: models.SellerRole},
+        {Name: models.CustomerRole},
+    }
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
-	if err != nil {
-		return nil, err
-	}
+    for _, role := range roles {
+        db.FirstOrCreate(&role, models.Role{Name: role.Name})
+    }
 
-	log.Println("Connected to database")
+    // Create default permissions
+    permissions := []models.Permission{
+        {Name: models.CreateProduct, Description: "Can create products"},
+        {Name: models.UpdateProduct, Description: "Can update products"},
+        {Name: models.DeleteProduct, Description: "Can delete products"},
+        {Name: models.ViewProduct, Description: "Can view products"},
+        {Name: models.ManageUsers, Description: "Can manage users"},
+        {Name: models.AccessWebBuilder, Description: "Can access web builder"},
+    }
 
-	return &DB{db}, nil
-}
+    for _, permission := range permissions {
+        db.FirstOrCreate(&permission, models.Permission{Name: permission.Name})
+    }
 
-func (db *DB) Migrate() error {
-	return db.AutoMigrate(
-		&User{},
-		&Role{},
-		&Permission{},
-		&UserRole{},
-		&RolePermission{},
-	)
-}
+    // Fetch all roles and permissions
+    var adminRole models.Role
+    var wholesalerRole models.Role
+    var sellerRole models.Role
+    var customerRole models.Role
+    var allPermissions []models.Permission
 
-type User struct {
-	gorm.Model
-	Username string `json:"username"`
-	Password string `json:"password"`
-	Role     string `json:"role"`
-}
+    db.First(&adminRole, "name = ?", models.AdminRole)
+    db.First(&wholesalerRole, "name = ?", models.WholesalerRole)
+    db.First(&sellerRole, "name = ?", models.SellerRole)
+    db.First(&customerRole, "name = ?", models.CustomerRole)
+    db.Find(&allPermissions)
 
-type Role struct {
-	gorm.Model
-	Name        string
-	Permissions []Permission `gorm:"many2many:role_permissions;"`
-}
+    // Define permission sets for each role
+    var wholesalerPermissions []models.Permission
+    var sellerPermissions []models.Permission
+    var customerPermissions []models.Permission
 
-type Permission struct {
-	gorm.Model
-	Name  string
-	Roles []Role `gorm:"many2many:role_permissions;"`
-}
+    // Assign permissions based on role
+    for _, permission := range allPermissions {
+        // Admin gets all permissions automatically
 
-type UserRole struct {
-	gorm.Model
-	UserID uint
-	RoleID uint
-}
+        // Assign wholesaler permissions
+        if permission.Name == models.CreateProduct ||
+           permission.Name == models.UpdateProduct ||
+           permission.Name == models.DeleteProduct {
+            wholesalerPermissions = append(wholesalerPermissions, permission)
+        }
 
-type RolePermission struct {
-	gorm.Model
-	RoleID       uint
-	PermissionID uint
-}
+        // Assign seller permissions
+        if permission.Name == models.CreateProduct ||
+           permission.Name == models.UpdateProduct {
+            sellerPermissions = append(sellerPermissions, permission)
+        }
 
-func (u *User) HashPassword(password string) error {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		return err
-	}
-	u.Password = string(hashedPassword)
-	return nil
-}
+        // Assign customer permissions
+        if permission.Name == models.ViewProduct {
+            customerPermissions = append(customerPermissions, permission)
+        }
+    }
 
-func (u *User) ComparePassword(password string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(u.Password), []byte(password)) == nil
+    // Assign permissions to roles
+    db.Model(&adminRole).Association("Permissions").Replace(allPermissions)
+    db.Model(&wholesalerRole).Association("Permissions").Replace(wholesalerPermissions)
+    db.Model(&sellerRole).Association("Permissions").Replace(sellerPermissions)
+    db.Model(&customerRole).Association("Permissions").Replace(customerPermissions)
 }
