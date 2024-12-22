@@ -27,10 +27,10 @@ func Register(c *fiber.Ctx) error {
         })
     }
 
-    // Log registration attempt
+
     log.Printf("Attempting to register user with email: %s", input.Email)
 
-    // Check for existing user
+ 
     var existingUser models.User
     if err := database.DB.Where("email = ?", input.Email).First(&existingUser).Error; err == nil {
         return c.Status(fiber.StatusConflict).JSON(fiber.Map{
@@ -38,10 +38,10 @@ func Register(c *fiber.Ctx) error {
         })
     }
 
-    // Create new user
+
     user := models.User{
         Email:     input.Email,
-        Password:  input.Password, // Will be hashed by BeforeCreate hook
+        Password:  input.Password, 
         FirstName: input.FirstName,
         LastName:  input.LastName,
         RoleID:    input.RoleID,
@@ -54,7 +54,7 @@ func Register(c *fiber.Ctx) error {
         })
     }
 
-    // Load role information
+
     if err := database.DB.Preload("Role").First(&user, user.ID).Error; err != nil {
         log.Printf("Error loading role: %v", err)
     }
@@ -101,7 +101,7 @@ func Login(c *fiber.Ctx) error {
         })
     }
 
-    // Check password
+
     if !utils.CheckPassword(input.Password, user.Password) {
         log.Printf("Invalid password attempt for user: %s", input.Email)
         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
@@ -109,7 +109,7 @@ func Login(c *fiber.Ctx) error {
         })
     }
 
-    // Generate token (assuming you've added the token generation code from earlier)
+    
     token, err := utils.GenerateToken(user.ID)
     if err != nil {
         log.Printf("Error generating token: %v", err)
@@ -132,88 +132,4 @@ func Login(c *fiber.Ctx) error {
         },
     })
 }
-// package handlers
-
-// import (
-// 	"github.com/Raviikumar001/e-com-api-go/internal/database"
-// 	"github.com/Raviikumar001/e-com-api-go/internal/models"
-// 	"github.com/Raviikumar001/e-com-api-go/internal/utils"
-// 	"github.com/gofiber/fiber/v2"
-// )
-
-// type LoginRequest struct {
-//     Email    string `json:"email"`
-//     Password string `json:"password"`
-// }
-
-// type RegisterRequest struct {
-//     Email     string `json:"email"`
-//     Password  string `json:"password"`
-//     FirstName string `json:"first_name"`
-//     LastName  string `json:"last_name"`
-//     RoleID    uint   `json:"role_id"`
-// }
-
-// func Login(c *fiber.Ctx) error {
-//     var req LoginRequest
-//     if err := c.BodyParser(&req); err != nil {
-//         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-//             "error": "Invalid request body",
-//         })
-//     }
-
-//     var user models.User
-//     result := database.DB.Where("email = ?", req.Email).First(&user)
-//     if result.Error != nil {
-//         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-//             "error": "Invalid credentials",
-//         })
-//     }
-
-//     if !utils.CheckPassword(req.Password, user.Password) {
-//         return c.Status(fiber.StatusUnauthorized).JSON(fiber.Map{
-//             "error": "Invalid credentials",
-//         })
-//     }
-
-//     token, err := utils.GenerateJWT(user.ID)
-//     if err != nil {
-//         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-//             "error": "Could not generate token",
-//         })
-//     }
-
-//     return c.JSON(fiber.Map{
-//         "token": token,
-//     })
-// }
-
-// func Register(c *fiber.Ctx) error {
-//     var req RegisterRequest
-//     if err := c.BodyParser(&req); err != nil {
-//         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-//             "error": "Invalid request body",
-//         })
-//     }
-
-//     user := models.User{
-//         Email:     req.Email,
-//         Password:  req.Password,
-//         FirstName: req.FirstName,
-//         LastName:  req.LastName,
-//         RoleID:    req.RoleID,
-//     }
-
-//     result := database.DB.Create(&user)
-//     if result.Error != nil {
-//         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-//             "error": "Could not create user",
-//         })
-//     }
-
-//     return c.Status(fiber.StatusCreated).JSON(fiber.Map{
-//         "message": "User created successfully",
-//     })
-// }
-
 

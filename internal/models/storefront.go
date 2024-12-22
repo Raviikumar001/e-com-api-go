@@ -10,12 +10,12 @@ import (
 // Settings represents the JSON structure for storefront settings
 type Settings map[string]interface{}
 
-// Value implements the driver.Valuer interface
+
 func (s Settings) Value() (driver.Value, error) {
     return json.Marshal(s)
 }
 
-// Scan implements the sql.Scanner interface
+
 func (s *Settings) Scan(value interface{}) error {
     if value == nil {
         *s = nil

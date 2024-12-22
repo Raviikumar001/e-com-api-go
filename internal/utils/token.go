@@ -17,7 +17,7 @@ type Claims struct {
 // GenerateToken creates a new JWT token for a user
 func GenerateToken(userID uint) (string, error) {
     // Get secret key from environment variable, or use a default for development
-    secretKey := os.Getenv("JWT_SECRET_KEY")
+    secretKey := os.Getenv("JWT_SECRET")
     if secretKey == "" {
         secretKey = "your-secret-key-here" // For development only, in production always use environment variable
     }
@@ -46,7 +46,7 @@ func GenerateToken(userID uint) (string, error) {
 
 // ValidateToken validates the JWT token and returns the user ID
 func ValidateToken(tokenString string) (uint, error) {
-    secretKey := os.Getenv("JWT_SECRET_KEY")
+    secretKey := os.Getenv("JWT_SECRET")
     if secretKey == "" {
         secretKey = "your-secret-key-here" // For development only
     }
