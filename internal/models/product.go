@@ -3,14 +3,16 @@ package models
 
 type Product struct {
     Base
-    Name         string  `json:"name" gorm:"not null"`
-    Description  string  `json:"description"`
-    Price        float64 `json:"price" gorm:"not null"`
-    Stock        int     `json:"stock" gorm:"not null"`
-    WholesalerID uint    `json:"wholesaler_id" gorm:"not null"`
-    SellerID     uint    `json:"seller_id"`
-    Status       string  `json:"status" gorm:"default:'active'"` // active, inactive, deleted
-    Images       []string `json:"images" gorm:"type:text[]"`
-    Category     string   `json:"category"`
+    Name          string  `json:"name" gorm:"not null"`
+    Description   string  `json:"description"`
+    Price         float64 `json:"price" gorm:"not null"`
+    CostPrice     float64 `json:"cost_price"`
+    Stock         int     `json:"stock" gorm:"not null"`
+    Category      string  `json:"category"`
+    ImageURL      string  `json:"image_url"`
+    IsPublished   bool    `json:"is_published" gorm:"default:false"`
+    SellerID      *uint   `json:"seller_id"`       // Make it pointer to allow null
+    WholesalerID  *uint   `json:"wholesaler_id"`   // Add WholesalerID field
+    Seller        *User    `json:"seller" gorm:"foreignKey:SellerID"`
+    Wholesaler    *User    `json:"wholesaler" gorm:"foreignKey:WholesalerID"`
 }
-
