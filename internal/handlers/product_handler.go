@@ -16,23 +16,21 @@ type CreateProductRequest struct {
 func CreateProduct(c *fiber.Ctx) error {
     user := c.Locals("user").(*models.User)
     
-    var req CreateProductRequest
-    if err := c.BodyParser(&req); err != nil {
+    var product models.Product
+    if err := c.BodyParser(&product); err != nil {
         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
             "error": "Invalid request body",
         })
     }
 
-    product := models.Product{
-        Name:         req.Name,
-        Description:  req.Description,
-        Price:        req.Price,
-        Stock:        req.Stock,
-        WholesalerID: user.ID,
+    // Set the creator ID based on role
+    if user.Role.Name == models.WholesalerRole {
+        product.WholesalerID = user.ID
+    } else {
+        product.SellerID = user.ID
     }
 
-    result := database.DB.Create(&product)
-    if result.Error != nil {
+    if err := database.DB.Create(&product).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Could not create product",
         })
@@ -41,16 +39,85 @@ func CreateProduct(c *fiber.Ctx) error {
     return c.Status(fiber.StatusCreated).JSON(product)
 }
 
+// func CreateProduct(c *fiber.Ctx) error {
+//     user := c.Locals("user").(*models.User)
+    
+//     var req CreateProductRequest
+//     if err := c.BodyParser(&req); err != nil {
+//         return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+//             "error": "Invalid request body",
+//         })
+//     }
+
+//     product := models.Product{
+//         Name:         req.Name,
+//         Description:  req.Description,
+//         Price:        req.Price,
+//         Stock:        req.Stock,
+//         WholesalerID: user.ID,
+//     }
+
+//     result := database.DB.Create(&product)
+//     if result.Error != nil {
+//         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+//             "error": "Could not create product",
+//         })
+//     }
+
+//     return c.Status(fiber.StatusCreated).JSON(product)
+// }
+
 func GetProducts(c *fiber.Ctx) error {
     var products []models.Product
-    result := database.DB.Find(&products)
-    if result.Error != nil {
+    if err := database.DB.Find(&products).Error; err != nil {
         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
             "error": "Could not fetch products",
         })
     }
 
     return c.JSON(products)
+}
+
+// func GetProducts(c *fiber.Ctx) error {
+//     var products []models.Product
+//     result := database.DB.Find(&products)
+//     if result.Error != nil {
+//         return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
+//             "error": "Could not fetch products",
+//         })
+//     }
+
+//     return c.JSON(products)
+// }
+
+
+func GetProductDetails(c *fiber.Ctx) error {
+    user := c.Locals("user").(*models.User)
+    productID := c.Params("id")
+
+    var product models.Product
+    if err := database.DB.First(&product, productID).Error; err != nil {
+        return c.Status(fiber.StatusNotFound).JSON(fiber.Map{
+            "error": "Product not found",
+        })
+    }
+
+    // Create response based on user role
+    response := fiber.Map{
+        "id":          product.ID,
+        "name":        product.Name,
+        "description": product.Description,
+        "price":       product.Price,
+    }
+
+    // Add sensitive data for wholesalers and sellers only
+    if user.Role.Name == models.WholesalerRole || user.Role.Name == models.SellerRole {
+        response["stock"] = product.Stock
+        response["wholesaler_id"] = product.WholesalerID
+        response["seller_id"] = product.SellerID
+    }
+
+    return c.JSON(response)
 }
 
 
@@ -94,3 +161,5 @@ func UpdateProduct(c *fiber.Ctx) error {
 
     return c.JSON(product)
 }
+
+

@@ -8,14 +8,47 @@ import (
 	"github.com/Raviikumar001/e-com-api-go/internal/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 var DB *gorm.DB
 
+// func InitDB() {
+//     dsn := os.Getenv("DATABASE_URL")
+
+//     db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+//     if err != nil {
+//         log.Fatal("Failed to connect to database:", err)
+//     }
+
+//     DB = db
+
+//     // Auto Migrate schemas
+//     err = db.AutoMigrate(
+//         &models.User{},
+//         &models.Role{},
+//         &models.Permission{},
+//         &models.Product{},
+//         &models.Storefront{},
+//     )
+//     if err != nil {
+//         log.Fatal("Failed to migrate database:", err)
+//     }
+
+//     // Initialize RBAC data
+//     initializeRBAC(db)
+// }
+
+// internal/database/db.go
 func InitDB() {
     dsn := os.Getenv("DATABASE_URL")
+    
+    // Add logging configuration
+    dbConfig := &gorm.Config{
+        Logger: logger.Default.LogMode(logger.Info), // Add this line for detailed logging
+    }
 
-    db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+    db, err := gorm.Open(postgres.Open(dsn), dbConfig)
     if err != nil {
         log.Fatal("Failed to connect to database:", err)
     }
@@ -34,8 +67,12 @@ func InitDB() {
         log.Fatal("Failed to migrate database:", err)
     }
 
-    // Initialize RBAC data
-    initializeRBAC(db)
+     // After migrations, seed the database
+     if err := SeedRolesAndPermissions(); err != nil {
+        log.Printf("Warning: Error seeding database: %v", err)
+    }
+
+    log.Println("Database migration completed successfully")
 }
 
 // Initialize default roles and permissions
